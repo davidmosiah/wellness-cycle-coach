@@ -1,0 +1,69 @@
+{
+  "name": "wellness-cycle-coach",
+  "version": "0.1.0",
+  "description": "Local-first menstrual cycle coach MCP for AI agents — orchestrates Apple Health Cycle, Garmin women's health, and Fitbit female health into phase-aware nutrition and recovery context.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "wellness-cycle-coach": "dist/index.js",
+    "wellness-cycle-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "server.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "smoke": "node scripts/smoke-tools.mjs",
+    "test:metadata": "node scripts/metadata-check.mjs",
+    "test": "npm run typecheck && npm run build && npm run smoke && npm run test:metadata",
+    "prepublishOnly": "npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "homepage": "https://wellness.delx.ai/connectors/cycle",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidmosiah/wellness-cycle-coach.git"
+  },
+  "bugs": {
+    "url": "https://github.com/davidmosiah/wellness-cycle-coach/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "menstrual-cycle",
+    "womens-health",
+    "fertility",
+    "wellness",
+    "delx-wellness"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.21.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "tsx": "^4.20.6",
+    "typescript": "^6.0.3"
+  },
+  "mcpName": "io.github.davidmosiah/wellness-cycle-coach",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js"
+}

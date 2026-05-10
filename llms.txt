@@ -1,0 +1,45 @@
+# Wellness Cycle Coach
+
+Local-first, stateless menstrual cycle coach MCP. Takes period start dates (passed by the agent or fetched from apple-health-mcp / garminmcp / fitbitmcp), computes the user's current phase, and returns phase-aware nutrition + training + hydration recommendations. Never stores cycle data itself.
+
+Repository: https://github.com/davidmosiah/wellness-cycle-coach
+NPM: https://www.npmjs.com/package/wellness-cycle-coach
+Docs: https://wellness.delx.ai/connectors/cycle
+Primary command: npx -y wellness-cycle-coach doctor
+MCP command: wellness-cycle-mcp
+
+Core tools (11):
+- cycle_agent_manifest — runtime contract, supported clients, env vars
+- cycle_capabilities — phases, upstream connectors, metrics
+- cycle_connection_status — health + reminder this MCP is stateless
+- cycle_privacy_audit — what is logged (nothing) vs sent out (nothing)
+- cycle_data_inventory — phase taxonomy + metric catalog
+- cycle_estimate_phase — given history, return current phase + cycle day + confidence
+- cycle_predict_next_period — average cycle length + next-period date
+- cycle_phase_guidance — nutrition + training + hydration for any phase
+- cycle_recommend_nutrition — phase-aware nutrition guidance
+- cycle_recommend_training — phase-aware training guidance
+- cycle_full_report — single-call combined report
+
+Optional env vars:
+- WELLNESS_CYCLE_COACH_QUIET=1 — suppress the stderr community CTA
+
+Workflow for agents:
+1. Fetch period history from apple-health-mcp (Apple Health Cycle), garminmcp (women's health), or fitbitmcp (female health). Or take user input directly.
+2. Pass `history: [{start_date: 'YYYY-MM-DD'}]` to cycle_estimate_phase or cycle_full_report.
+3. Use returned phase to query nutrition + training guidance.
+4. Cross-reference with WHOOP/Oura/Garmin recovery for late-luteal training-load adjustments.
+5. Pair nutrition output with wellness-nourish for full meal planning.
+
+Phases:
+- menstrual (days 1 → period_length): iron + magnesium, restorative training
+- follicular (period end → ~day 13): complex carbs, build phase / strength training
+- ovulatory (~days 13-15): antioxidants, peak intensity training
+- luteal (~day 15 → next period): magnesium + B vitamins, endurance + technique training
+
+Safety:
+- Stateless — never persists cycle data.
+- Never claims medical accuracy — recommendations are evidence-informed defaults.
+- Never surfaces predictions to third parties without explicit consent.
+- Defer to clinician for fertility, pregnancy, or symptom-management decisions.
+- Treat menstrual cycle data with the same sensitivity as medical records.

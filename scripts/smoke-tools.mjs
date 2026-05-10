@@ -9,6 +9,8 @@ const EXPECTED_TOOLS = new Set([
   "cycle_connection_status",
   "cycle_privacy_audit",
   "cycle_data_inventory",
+  "cycle_quickstart",
+  "cycle_demo",
   "cycle_estimate_phase",
   "cycle_predict_next_period",
   "cycle_phase_guidance",
@@ -75,6 +77,27 @@ console.log(`✓ cycle_full_report works (current phase=${report.estimate.phase}
 const privacy = JSON.parse((await client.callTool({ name: "cycle_privacy_audit", arguments: {} })).content[0].text);
 assert.equal(privacy.outbound_destinations[0], "none — fully local computation");
 console.log("✓ cycle_privacy_audit confirms no outbound");
+
+const quickstart = JSON.parse((await client.callTool({ name: "cycle_quickstart", arguments: {} })).content[0].text);
+assert.equal(quickstart.ok, true);
+assert.ok(Array.isArray(quickstart.steps) && quickstart.steps.length === 3);
+console.log("✓ cycle_quickstart returns 3-step walkthrough");
+
+const demo = JSON.parse((await client.callTool({ name: "cycle_demo", arguments: {} })).content[0].text);
+assert.equal(demo.is_demo, true);
+assert.ok(demo.sample_output.tldr);
+console.log(`✓ cycle_demo returns sample payload (tldr: '${demo.sample_output.tldr.slice(0, 60)}...')`);
+
+const reportWithTldr = JSON.parse(
+  (
+    await client.callTool({
+      name: "cycle_full_report",
+      arguments: { history: [{ start_date: "2026-04-01" }, { start_date: "2026-04-29" }], today: "2026-05-15" },
+    })
+  ).content[0].text,
+);
+assert.ok(reportWithTldr.tldr && typeof reportWithTldr.tldr === "string");
+console.log("✓ cycle_full_report includes tldr string");
 
 await client.close();
 console.log("\nall smoke checks passed.");

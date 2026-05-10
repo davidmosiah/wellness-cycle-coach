@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-10
+
+### Added
+
+- `cycle_quickstart` tool — returns a personalized 3-step walkthrough for using the coach (gather history → call full_report → cross-reference with rest of the wellness stack).
+- `cycle_demo` tool — returns a sample `cycle_full_report` payload with synthetic data so agents see the contract before integrating real period dates.
+- `cycle_full_report` now returns a one-line `tldr` string for quick agent rendering ("Phase: luteal (cycle day 22). Eat: complex carbs, B vitamins. Train: endurance + technique (moderate). Hydrate: 2600 ml. Next period: ~2026-05-27.")
+- `doctor` CLI now returns a `recommendations[]` array suggesting next-step tools.
+
+### Changed
+
+- `recommended_first_calls` on the agent manifest now leads with `cycle_quickstart`.
+- Tool count: 11 → 13.
+
 ## [0.1.0] - 2026-05-10
 
 ### Added

@@ -38,6 +38,11 @@ export async function runCliCommand(args: string[]): Promise<number> {
             stateless: true,
             capabilities: buildCapabilities(),
             privacy: buildPrivacyAudit(),
+            recommendations: [
+              "Try cycle_demo to see a sample output before integrating real data.",
+              "Try cycle_quickstart to get a 3-step setup tailored to your client.",
+              "Pass period start dates via tool args; this MCP is stateless by design.",
+            ],
           },
           null,
           2,

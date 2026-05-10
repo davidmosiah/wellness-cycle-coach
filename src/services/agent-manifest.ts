@@ -20,6 +20,8 @@ const TOOLS = [
   "cycle_connection_status",
   "cycle_privacy_audit",
   "cycle_data_inventory",
+  "cycle_quickstart",
+  "cycle_demo",
   "cycle_estimate_phase",
   "cycle_predict_next_period",
   "cycle_phase_guidance",
@@ -29,9 +31,9 @@ const TOOLS = [
 ] as const;
 
 const RECOMMENDED_FIRST_CALLS = [
-  "cycle_connection_status",
-  "cycle_capabilities",
-  "cycle_estimate_phase",
+  "cycle_quickstart",
+  "cycle_demo",
+  "cycle_full_report",
 ];
 
 export interface CycleCoachAgentManifest {

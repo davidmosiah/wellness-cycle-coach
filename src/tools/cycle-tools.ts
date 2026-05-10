@@ -204,7 +204,7 @@ export function registerCycleTools(server: McpServer): void {
     "cycle_full_report",
     {
       title: "Cycle full report",
-      description: "Single-call report: phase + nutrition + training + hydration + next-period estimate.",
+      description: "Single-call report: phase + nutrition + training + hydration + next-period estimate. Includes a TL;DR string for quick agent rendering.",
       inputSchema: {
         history: HistorySchema,
         today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -214,13 +214,100 @@ export function registerCycleTools(server: McpServer): void {
       const reference = today ? new Date(today + "T12:00:00Z") : new Date();
       const estimate = estimatePhase(history as CycleHistoryEntry[], reference);
       const guidance = guidanceForPhase(estimate.phase);
+      const tldr =
+        `Phase: ${estimate.phase} (cycle day ${estimate.cycle_day} of ~${estimate.cycle_length_days}). ` +
+        `Eat: ${guidance.nutrition.emphasize.slice(0, 2).join(", ")}. ` +
+        `Train: ${guidance.training.style} (${guidance.training.intensity}). ` +
+        `Hydrate: ${guidance.nutrition.hydration_ml_target} ml. ` +
+        `Next period: ~${estimate.next_period_estimate}.`;
       return jsonResponse({
+        tldr,
         estimate,
         guidance,
         cross_connector_hints: [
           "Pair nutrition with `wellness-nourish` for meal planning that respects phase emphasis.",
           "Pair training with `whoop-mcp` / `garminmcp` / `ouramcp` recovery for late-luteal load adjustments.",
           "Pair hydration target with `wellness-nourish` hydration tools.",
+        ],
+      });
+    },
+  );
+
+  server.registerTool(
+    "cycle_quickstart",
+    {
+      title: "Cycle quickstart",
+      description:
+        "Returns a personalized 3-step walkthrough for using wellness-cycle-coach. Call this first when the user asks 'how do I use this?'",
+      inputSchema: {
+        client: z
+          .enum(["claude", "codex", "cursor", "windsurf", "hermes", "openclaw", "generic"])
+          .optional(),
+      },
+    },
+    async ({ client }) => {
+      return jsonResponse({
+        ok: true,
+        client: client ?? "generic",
+        stateless_reminder:
+          "wellness-cycle-coach NEVER stores cycle data. Every call requires period start dates passed in tool args.",
+        steps: [
+          {
+            step: 1,
+            title: "Gather period start dates",
+            action:
+              "Pull period history from apple-health-mcp (Apple Health Cycle), garminmcp (women's health), or fitbitmcp (female health) — all three are in the davidmosiah ecosystem. Or ask the user directly.",
+            example: "history: [{ start_date: '2026-04-01' }, { start_date: '2026-04-29' }]",
+          },
+          {
+            step: 2,
+            title: "Call cycle_full_report",
+            action: "Pass the history array (and optionally `today` for testing). Get back current phase + nutrition + training + hydration + next-period date + a TL;DR string.",
+            example: "cycle_full_report({ history: [...] }) → { tldr: 'Phase: luteal...', estimate, guidance }",
+          },
+          {
+            step: 3,
+            title: "Cross-reference with the rest of the wellness stack",
+            action:
+              "Use the phase to inform wellness-nourish meal planning, WHOOP/Oura/Garmin recovery to adjust training intensity in luteal, and nourish hydration to set the daily ml target.",
+            example: "Late luteal + WHOOP recovery 65 → 'expected; pre-period normal. Endurance + magnesium-rich meal.'",
+          },
+        ],
+        next_call: "cycle_full_report",
+      });
+    },
+  );
+
+  server.registerTool(
+    "cycle_demo",
+    {
+      title: "Cycle demo",
+      description:
+        "Returns a realistic example payload showing what cycle_full_report looks like with sample data. Use to help agents understand the contract before a real call.",
+      inputSchema: {},
+    },
+    async () => {
+      const sampleHistory: CycleHistoryEntry[] = [
+        { start_date: "2026-03-04" },
+        { start_date: "2026-04-01" },
+        { start_date: "2026-04-29" },
+      ];
+      const estimate = estimatePhase(sampleHistory, new Date("2026-05-15T12:00:00Z"));
+      const guidance = guidanceForPhase(estimate.phase);
+      const tldr =
+        `Phase: ${estimate.phase} (cycle day ${estimate.cycle_day} of ~${estimate.cycle_length_days}). ` +
+        `Eat: ${guidance.nutrition.emphasize.slice(0, 2).join(", ")}. ` +
+        `Train: ${guidance.training.style} (${guidance.training.intensity}). ` +
+        `Hydrate: ${guidance.nutrition.hydration_ml_target} ml.`;
+      return jsonResponse({
+        ok: true,
+        is_demo: true,
+        sample_input: { history: sampleHistory, today: "2026-05-15" },
+        sample_output: { tldr, estimate, guidance },
+        notes: [
+          "This is synthetic data showing the shape of cycle_full_report output.",
+          "In real use, the agent passes the user's actual period start dates.",
+          "Confidence rises as more history accumulates (3+ periods = medium, 6+ = high).",
         ],
       });
     },

@@ -17,6 +17,9 @@ const EXPECTED_TOOLS = new Set([
   "cycle_recommend_nutrition",
   "cycle_recommend_training",
   "cycle_full_report",
+  "cycle_profile_get",
+  "cycle_profile_update",
+  "cycle_onboarding",
 ]);
 
 const transport = new StdioClientTransport({

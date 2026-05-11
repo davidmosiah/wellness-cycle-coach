@@ -1,8 +1,14 @@
 import { NPM_PACKAGE_NAME, SERVER_VERSION } from "../constants.js";
 import { buildCapabilities } from "../services/capabilities.js";
 import { buildPrivacyAudit } from "../services/privacy-audit.js";
+import {
+  getOnboardingFlow,
+  getProfile,
+  getProfilePath,
+  missingCriticalFields,
+} from "../services/profile-store.js";
 
-const COMMANDS = new Set(["status", "doctor", "setup"]);
+const COMMANDS = new Set(["status", "doctor", "setup", "onboarding"]);
 
 function printCommunityCTA(): void {
   if (process.env.WELLNESS_CYCLE_COACH_QUIET === "1") return;
@@ -22,7 +28,7 @@ export function isCliCommand(args: string[]): boolean {
 }
 
 export async function runCliCommand(args: string[]): Promise<number> {
-  const [command] = args;
+  const [command, ...rest] = args;
   switch (command) {
     case "status":
       console.log(JSON.stringify({ name: NPM_PACKAGE_NAME, version: SERVER_VERSION, stateless: true }, null, 2));
@@ -72,6 +78,36 @@ export async function runCliCommand(args: string[]): Promise<number> {
       );
       printCommunityCTA();
       return 0;
+    case "onboarding": {
+      const locale = rest[0] === "pt-BR" ? "pt-BR" : "en";
+      const flow = getOnboardingFlow(locale);
+      const profile = await getProfile();
+      const missing = missingCriticalFields(profile);
+      console.log(
+        JSON.stringify(
+          {
+            ...flow,
+            current_profile: profile,
+            missing_critical: missing,
+          },
+          null,
+          2,
+        ),
+      );
+      if (process.stderr.isTTY && process.env.WELLNESS_CYCLE_COACH_QUIET !== "1") {
+        process.stderr.write(
+          `\n## Delx Wellness shared onboarding (${locale})\n` +
+            `\nThe agent will ask these 11 questions next so wellness-cycle-coach (and the rest\n` +
+            `of the wellness stack) can personalize responses — non-secret data only, stored at\n` +
+            `${getProfilePath()}.\n\n` +
+            flow.questions
+              .map((q, i) => `${i + 1}. (${q.required ? "required" : "optional"}) ${q.prompt}`)
+              .join("\n") +
+            `\n\nPrivacy: ${flow.privacy_note}\n\n`,
+        );
+      }
+      return 0;
+    }
     default:
       return -1;
   }

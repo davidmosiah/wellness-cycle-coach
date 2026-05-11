@@ -18,21 +18,24 @@ const TOOLS = [
   "cycle_agent_manifest",
   "cycle_capabilities",
   "cycle_connection_status",
-  "cycle_privacy_audit",
   "cycle_data_inventory",
-  "cycle_quickstart",
   "cycle_demo",
   "cycle_estimate_phase",
-  "cycle_predict_next_period",
+  "cycle_full_report",
+  "cycle_onboarding",
   "cycle_phase_guidance",
+  "cycle_predict_next_period",
+  "cycle_privacy_audit",
+  "cycle_profile_get",
+  "cycle_profile_update",
+  "cycle_quickstart",
   "cycle_recommend_nutrition",
   "cycle_recommend_training",
-  "cycle_full_report",
 ] as const;
 
 const RECOMMENDED_FIRST_CALLS = [
+  "cycle_profile_get",
   "cycle_quickstart",
-  "cycle_demo",
   "cycle_full_report",
 ];
 

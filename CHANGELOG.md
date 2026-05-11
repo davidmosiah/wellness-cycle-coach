@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-11
+
+### Added
+
+- **Shared wellness profile support** — vendored canonical `profile-store` (Delx Wellness `ab83d1a`) at `src/services/profile-store.ts`. Reads/writes `~/.delx-wellness/profile.json` (the same file every Delx Wellness MCP can read).
+- `cycle_profile_get` MCP tool — returns the user's shared profile, one-line summary, and missing critical fields. Read-only.
+- `cycle_profile_update` MCP tool — persist a partial patch with `explicit_user_intent: true`. Rejects secret-like fields (oauth/token/secret/password/cookie/refresh/api_key/session).
+- `cycle_onboarding` MCP tool — returns the 11-question onboarding flow + the current profile + a cross-connector hint that `profile.profile.sex_or_gender_context` activates phase-aware coaching (pair with wellness-nourish phase-emphasis meals + whoop-mcp recovery for late-luteal load adjustments).
+- `wellness-cycle-coach onboarding [pt-BR|en]` CLI command — emits the flow as JSON on stdout plus a TTY-gated Markdown walkthrough on stderr ("the agent will ask these 11 questions next — non-secret data only, stored at ~/.delx-wellness/profile.json").
+
+### Changed
+
+- Tool count: 13 → 16.
+- `recommended_first_calls` now leads with `cycle_profile_get` so agents fetch the user's `sex_or_gender_context` before activating phase-aware coaching.
+
 ## [0.2.0] - 2026-05-10
 
 ### Added

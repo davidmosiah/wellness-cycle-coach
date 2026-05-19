@@ -107,7 +107,7 @@ export function registerCycleTools(server: McpServer): void {
     {
       title: "Cycle estimate phase",
       description:
-        "Given a list of recent period start dates (from any source), returns the current phase, cycle day, estimated cycle length, next-period date, and confidence.",
+        "Given a list of recent period start dates (from any source), returns the current phase, cycle day, estimated cycle length, next-period date, and confidence. v0.3.2 adds a `late_luteal` sub-phase (triggered when the cycle is past its expected end + grace day) plus `days_past_due` and `delay_flag` (raised when ≥2 days late vs prediction from 3+ historical cycles) so agents can surface 'cycle late' messaging instead of generic luteal guidance.",
       inputSchema: {
         history: HistorySchema.describe(
           "Array of {start_date: 'YYYY-MM-DD', length_days?: number}. Sorted automatically.",
@@ -223,8 +223,13 @@ export function registerCycleTools(server: McpServer): void {
       const reference = today ? new Date(today + "T12:00:00Z") : new Date();
       const estimate = estimatePhase(history as CycleHistoryEntry[], reference);
       const guidance = guidanceForPhase(estimate.phase);
+      const lateBit = estimate.delay_flag
+        ? ` Cycle is ${estimate.days_past_due} day(s) past predicted start — consider pregnancy test if applicable.`
+        : estimate.phase === "late_luteal"
+          ? ` Cycle is ${estimate.days_past_due ?? 0} day(s) past predicted start — common short-term delay.`
+          : "";
       const tldr =
-        `Phase: ${estimate.phase} (cycle day ${estimate.cycle_day} of ~${estimate.cycle_length_days}). ` +
+        `Phase: ${estimate.phase} (cycle day ${estimate.cycle_day} of ~${estimate.cycle_length_days}).${lateBit} ` +
         `Eat: ${guidance.nutrition.emphasize.slice(0, 2).join(", ")}. ` +
         `Train: ${guidance.training.style} (${guidance.training.intensity}). ` +
         `Hydrate: ${guidance.nutrition.hydration_ml_target} ml. ` +

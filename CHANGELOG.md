@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-19
+
+### Added
+
+- **`late_luteal` sub-phase + `delay_flag` + `days_past_due` on every phase estimate.** Previously when a cycle was past its expected end (cycleLength + 1 day) the engine still returned `phase: "luteal"` with the same generic guidance. Now the engine returns:
+  - `phase: "late_luteal"` whenever the cycle has crossed cycleLength + `LATE_LUTEAL_GRACE_DAYS` (1 day).
+  - `days_past_due` — positive integer when late, zero on the predicted day, negative when before.
+  - `delay_flag: true` when the cycle is ≥2 days past predicted start AND we have 3+ historical cycles to trust the prediction (avoids false positives on first/second cycles where confidence is low).
+- New `guidanceForPhase("late_luteal")` returns restorative/low-impact training and PMS-friendly nutrition (B6, magnesium), plus user-facing notes that mention pregnancy-test guidance and "log eventual period start so future predictions stay accurate".
+- `cycle_full_report` TL;DR now includes "Cycle is N day(s) past predicted start" when `delay_flag` is raised so agents surface the delay without needing to inspect the full object.
+
+### Changed
+
+- `cycle_estimate_phase` tool description updated to document `late_luteal` + `delay_flag` + `days_past_due`.
+
 ## [0.3.1] - 2026-05-11
 
 ### Fixed

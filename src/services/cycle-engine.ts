@@ -8,6 +8,8 @@ import {
   DEFAULT_CYCLE_LENGTH_DAYS,
   DEFAULT_LUTEAL_LENGTH_DAYS,
   DEFAULT_PERIOD_LENGTH_DAYS,
+  DELAY_FLAG_DAYS,
+  LATE_LUTEAL_GRACE_DAYS,
   type CyclePhase,
 } from "../constants.js";
 
@@ -27,6 +29,16 @@ export interface PhaseEstimate {
   /** Confidence based on how much history was provided (low/medium/high). */
   confidence: "low" | "medium" | "high";
   notes: string[];
+  /**
+   * Days the current cycle is past its predicted next-period start.
+   * Negative or zero when cycle is on time; positive when late.
+   */
+  days_past_due?: number;
+  /**
+   * True when the cycle is at least DELAY_FLAG_DAYS past predicted start
+   * AND we have at least 3 historical cycles to anchor the prediction.
+   */
+  delay_flag?: boolean;
 }
 
 export function estimateAverageCycleLength(history: CycleHistoryEntry[]): number {
@@ -63,21 +75,63 @@ export function estimatePhase(history: CycleHistoryEntry[], today: Date = new Da
   const phase = phaseFromDay(cycleDay, cycleLength, lastPeriod.length_days ?? DEFAULT_PERIOD_LENGTH_DAYS);
   const nextStart = new Date(new Date(lastPeriod.start_date).getTime() + cycleLength * 86_400_000);
   const confidence: "low" | "medium" | "high" = history.length >= 6 ? "high" : history.length >= 3 ? "medium" : "low";
+  // daysPastDue = how many days *after* the predicted next-period start are we?
+  // Positive when cycle is late, zero on the predicted day, negative when before.
+  const daysPastDue = Math.floor((today.getTime() - nextStart.getTime()) / 86_400_000);
+  // Raise delay_flag when 2+ days late AND we have 3+ historical cycles to trust the prediction.
+  const delayFlag = daysPastDue >= DELAY_FLAG_DAYS && history.length >= 3;
+
+  const notes: string[] = [];
+  if (confidence === "low") notes.push("Confidence low; log more periods to improve accuracy.");
+  if (phase === "late_luteal") {
+    notes.push(
+      `Cycle is ${daysPastDue} day(s) past its predicted next-period start. ` +
+        "This often resolves within 1-2 days. If it doesn't, see the delay_flag and consider " +
+        "a pregnancy test (if applicable) or note other delay factors (stress, travel, illness, training load).",
+    );
+  }
+  if (delayFlag) {
+    notes.push(
+      `delay_flag=true: cycle is ≥${DELAY_FLAG_DAYS} days late vs prediction from last ${history.length} cycle(s). ` +
+        "Consider pregnancy test if applicable; otherwise log the eventual period start so future predictions stay accurate.",
+    );
+  }
+
   return {
     phase,
     cycle_day: cycleDay,
     cycle_length_days: cycleLength,
     next_period_estimate: nextStart.toISOString().slice(0, 10),
     confidence,
-    notes: confidence === "low" ? ["Confidence low; log more periods to improve accuracy."] : [],
+    notes,
+    days_past_due: daysPastDue,
+    delay_flag: delayFlag,
   };
 }
 
+/**
+ * Map a cycle day to a phase.
+ *
+ * Bounds (assuming a `cycleLength` of N and `periodLength` of P, with a fixed
+ * luteal length of DEFAULT_LUTEAL_LENGTH_DAYS = 14):
+ *   - days 1..P                                   → "menstrual"
+ *   - days P+1 .. ovulationDay-2                  → "follicular"
+ *   - days ovulationDay-1 .. ovulationDay+1       → "ovulatory"
+ *   - days ovulationDay+2 .. N + LATE_LUTEAL_GRACE_DAYS → "luteal"
+ *   - days N + LATE_LUTEAL_GRACE_DAYS + 1 onward  → "late_luteal"
+ *
+ * Late luteal is a NEW sub-phase (v0.3.2) that triggers when the cycle is past
+ * its expected end. Catches the edge case where a user is exactly 1+ day late
+ * and the old logic would still return "luteal" (no signal of anomaly).
+ */
 export function phaseFromDay(cycleDay: number, cycleLength: number, periodLength: number): CyclePhase {
   if (cycleDay <= periodLength) return "menstrual";
   const ovulationDay = cycleLength - DEFAULT_LUTEAL_LENGTH_DAYS;
   if (cycleDay < ovulationDay - 1) return "follicular";
   if (cycleDay <= ovulationDay + 1) return "ovulatory";
+  // Past the expected next-period start + grace? Flag as late_luteal so the
+  // agent can surface a delay note instead of generic luteal guidance.
+  if (cycleDay > cycleLength + LATE_LUTEAL_GRACE_DAYS) return "late_luteal";
   return "luteal";
 }
 
@@ -162,6 +216,26 @@ export function guidanceForPhase(phase: CyclePhase): PhaseGuidance {
           notes: ["Resting heart rate typically rises 3-5 bpm.", "Recovery slower; protein needs may rise 5-10%."],
         },
         notes: ["Progesterone dominant. Sleep quality may dip. Watch caffeine after noon.", "Mood/energy can drop in late luteal (PMS window)."],
+      };
+    case "late_luteal":
+      return {
+        phase,
+        nutrition: {
+          emphasize: ["complex carbs", "magnesium-rich foods (dark chocolate, pumpkin seeds, spinach)", "B6 (banana, salmon, chickpeas) — may ease PMS symptoms", "warm hydrating foods (soups, herbal tea)"],
+          moderate: ["caffeine (sleep + anxiety sensitivity peak)", "refined sugar (worsens mood swings)", "salt (worsens bloating)"],
+          avoid: ["heavy alcohol", "skipped meals (blood-sugar dips amplify PMS)"],
+          hydration_ml_target: 2700,
+        },
+        training: {
+          style: "restorative + low-impact — yoga, walking, mobility, easy Zone 1-2",
+          intensity: "low-moderate",
+          notes: ["Energy and recovery are lowest of the cycle.", "Avoid heavy strength PRs and high-intensity intervals — they spike cortisol when the body is already taxed."],
+        },
+        notes: [
+          "Cycle is past its expected end. Common causes: stress, travel, illness, training load, pregnancy.",
+          "If applicable, a pregnancy test is appropriate if the cycle is 7+ days late.",
+          "Log the eventual period start date so future cycle-length estimates stay accurate.",
+        ],
       };
   }
 }

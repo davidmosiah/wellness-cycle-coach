@@ -17,6 +17,7 @@ const EXPECTED_TOOLS = new Set([
   "cycle_recommend_nutrition",
   "cycle_recommend_training",
   "cycle_full_report",
+  "cycle_irregular_check",
   "cycle_profile_get",
   "cycle_profile_update",
   "cycle_onboarding",
@@ -101,6 +102,46 @@ const reportWithTldr = JSON.parse(
 );
 assert.ok(reportWithTldr.tldr && typeof reportWithTldr.tldr === "string");
 console.log("✓ cycle_full_report includes tldr string");
+
+const irregularCheck = JSON.parse(
+  (
+    await client.callTool({
+      name: "cycle_irregular_check",
+      arguments: { cycle_lengths_days: [45, 60, 38] },
+    })
+  ).content[0].text,
+);
+assert.equal(irregularCheck.is_irregular, true, "45/60/38 should flag as irregular");
+assert.ok(/clinician/i.test(irregularCheck.recommendation), "irregular recommendation should hint at clinician");
+console.log(`✓ cycle_irregular_check flags 45/60/38 (mean=${irregularCheck.mean_length}, stdev=${irregularCheck.stdev_length})`);
+
+const irregularRegular = JSON.parse(
+  (
+    await client.callTool({
+      name: "cycle_irregular_check",
+      arguments: { cycle_lengths_days: [28, 27, 29] },
+    })
+  ).content[0].text,
+);
+assert.equal(irregularRegular.is_irregular, false, "28/27/29 should NOT flag as irregular");
+console.log("✓ cycle_irregular_check leaves 28/27/29 alone");
+
+const pcosReport = JSON.parse(
+  (
+    await client.callTool({
+      name: "cycle_full_report",
+      arguments: {
+        history: [{ start_date: "2026-03-01" }, { start_date: "2026-04-15" }],
+        today: "2026-05-20",
+        cycle_irregular: true,
+      },
+    })
+  ).content[0].text,
+);
+assert.equal(pcosReport.estimate.confidence, "low", "PCOS mode should cap confidence at 'low'");
+assert.ok(pcosReport.estimate.warning, "PCOS-mode estimate should have warning");
+assert.ok(/clinician/i.test(pcosReport.estimate.warning), "warning should reference clinician");
+console.log(`✓ cycle_full_report in PCOS mode caps confidence + adds warning (phase=${pcosReport.estimate.phase})`);
 
 await client.close();
 console.log("\nall smoke checks passed.");

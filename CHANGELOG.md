@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-05-20
+
+### Added
+
+- **PCOS / irregular-cycle mode** — new optional `cycle_irregular: boolean` flag on `cycle_estimate_phase`, `cycle_predict_next_period`, `cycle_phase_guidance`, `cycle_recommend_nutrition`, `cycle_recommend_training`, and `cycle_full_report`. When `true`:
+  - Accepts cycle lengths from 21 to 90 days (instead of the standard 18-45 day filter that drops PCOS-typical 50-90 day cycles).
+  - Caps confidence at `"low"` regardless of how much history is logged (PCOS cycle variance is high enough that more data does not increase predictive trust).
+  - Surfaces a clinician-defer warning string on every response: *"PCOS / irregular-cycle mode is on. Predictions have high uncertainty. Defer to your clinician for fertility, contraception, or symptom-management decisions."*
+  - When `days_since_last > 35` and no period is recorded, returns the new `luteal_extended` phase with `late_luteal: true` and `irregular_window: true` instead of forcing the standard 14-day-luteal classification (which breaks at 35+ days).
+- **New tool `cycle_irregular_check`** — takes the user's last 3+ cycle lengths and returns `is_irregular`, `mean_length`, `stdev_length`, `min`, `max`, `coefficient_of_variation`, and a `recommendation` string. Flags as irregular when stdev > 7 days OR any cycle > 35 days OR CV > 0.15. Use this BEFORE deciding whether to enable `cycle_irregular: true` on the other tools.
+- **New `luteal_extended` phase** — added to `CYCLE_PHASES`, exposed in `cycle_capabilities` and `cycle_data_inventory`. Includes PCOS-aware guidance for `guidanceForPhase("luteal_extended")` — insulin-sensitivity-aware nutrition, strength-training emphasis, and notes that defer fertility/contraception/amenorrhea decisions to the user's clinician.
+- New `agent_rule` documenting the irregular-mode workflow: call `cycle_irregular_check` first, pass `cycle_irregular: true` on subsequent calls when irregular.
+
+### Changed
+
+- Tool count: 16 → 17.
+- `cycle_full_report` TL;DR includes `Cycle is N days since last period — irregular-mode extended window.` when in `luteal_extended` so agents surface the extended window without inspecting the full estimate object.
+- `cycle_estimate_phase`, `cycle_predict_next_period`, `cycle_phase_guidance`, `cycle_recommend_nutrition`, `cycle_recommend_training`, `cycle_full_report` tool descriptions updated to document the new flag.
+
 ## [0.3.2] - 2026-05-19
 
 ### Added

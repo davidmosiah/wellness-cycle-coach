@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  checkIrregularity,
   estimatePhase,
   guidanceForPhase,
   estimateAverageCycleLength,
@@ -18,7 +19,7 @@ import {
   updateProfile,
   type WellnessProfileDocument,
 } from "../services/profile-store.js";
-import { CYCLE_PHASES, UPSTREAM_CONNECTORS } from "../constants.js";
+import { CYCLE_PHASES, IRREGULAR_MODE_WARNING, UPSTREAM_CONNECTORS } from "../constants.js";
 
 function jsonResponse(payload: unknown) {
   return {
@@ -107,17 +108,23 @@ export function registerCycleTools(server: McpServer): void {
     {
       title: "Cycle estimate phase",
       description:
-        "Given a list of recent period start dates (from any source), returns the current phase, cycle day, estimated cycle length, next-period date, and confidence. v0.3.2 adds a `late_luteal` sub-phase (triggered when the cycle is past its expected end + grace day) plus `days_past_due` and `delay_flag` (raised when ≥2 days late vs prediction from 3+ historical cycles) so agents can surface 'cycle late' messaging instead of generic luteal guidance.",
+        "Given a list of recent period start dates (from any source), returns the current phase, cycle day, estimated cycle length, next-period date, and confidence. v0.3.2 adds a `late_luteal` sub-phase (triggered when the cycle is past its expected end + grace day) plus `days_past_due` and `delay_flag` (raised when ≥2 days late vs prediction from 3+ historical cycles). v0.3.3 adds `cycle_irregular` (PCOS / irregular-cycle mode): when true, accepts cycles 21-90 days, caps confidence at 'low', returns `luteal_extended` + `irregular_window: true` past 35 days since last period, and adds a clinician-defer warning.",
       inputSchema: {
         history: HistorySchema.describe(
           "Array of {start_date: 'YYYY-MM-DD', length_days?: number}. Sorted automatically.",
         ),
         today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Optional reference date; defaults to system today."),
+        cycle_irregular: z
+          .boolean()
+          .optional()
+          .describe(
+            "v0.3.3 — PCOS / irregular-cycle mode. When true: accepts cycles 21-90 days, caps confidence at 'low', returns `luteal_extended` when days_since_last > 35, and adds a clinician-defer warning string. Default false.",
+          ),
       },
     },
-    async ({ history, today }) => {
+    async ({ history, today, cycle_irregular }) => {
       const referenceDate = today ? new Date(today + "T12:00:00Z") : new Date();
-      const estimate = estimatePhase(history as CycleHistoryEntry[], referenceDate);
+      const estimate = estimatePhase(history as CycleHistoryEntry[], referenceDate, { cycle_irregular });
       return jsonResponse(estimate);
     },
   );
@@ -126,13 +133,19 @@ export function registerCycleTools(server: McpServer): void {
     "cycle_predict_next_period",
     {
       title: "Cycle predict next period",
-      description: "Given period history, returns the average cycle length and the next-expected period start date with confidence.",
+      description: "Given period history, returns the average cycle length and the next-expected period start date with confidence. v0.3.3 adds `cycle_irregular` — when true, accepts cycles 21-90 days and caps confidence at 'low' (PCOS / unpredictable patterns).",
       inputSchema: {
         history: HistorySchema,
+        cycle_irregular: z
+          .boolean()
+          .optional()
+          .describe(
+            "v0.3.3 — PCOS / irregular-cycle mode. When true: accepts cycles 21-90 days, caps confidence at 'low', surfaces clinician-defer warning. Default false.",
+          ),
       },
     },
-    async ({ history }) => {
-      const cycleLength = estimateAverageCycleLength(history as CycleHistoryEntry[]);
+    async ({ history, cycle_irregular }) => {
+      const cycleLength = estimateAverageCycleLength(history as CycleHistoryEntry[], { cycle_irregular });
       const sorted = [...(history as CycleHistoryEntry[])].sort((a, b) => a.start_date.localeCompare(b.start_date));
       const lastStart = sorted[sorted.length - 1]?.start_date;
       if (!lastStart) {
@@ -141,9 +154,20 @@ export function registerCycleTools(server: McpServer): void {
       const next = new Date(new Date(lastStart).getTime() + cycleLength * 86_400_000)
         .toISOString()
         .slice(0, 10);
-      const confidence: "low" | "medium" | "high" =
+      const standardConfidence: "low" | "medium" | "high" =
         history.length >= 6 ? "high" : history.length >= 3 ? "medium" : "low";
-      return jsonResponse({ ok: true, cycle_length_days: cycleLength, next_period_estimate: next, confidence });
+      const confidence = cycle_irregular ? "low" : standardConfidence;
+      const payload: Record<string, unknown> = {
+        ok: true,
+        cycle_length_days: cycleLength,
+        next_period_estimate: next,
+        confidence,
+      };
+      if (cycle_irregular) {
+        payload.warning = IRREGULAR_MODE_WARNING;
+        payload.irregular_window = true;
+      }
+      return jsonResponse(payload);
     },
   );
 
@@ -151,12 +175,24 @@ export function registerCycleTools(server: McpServer): void {
     "cycle_phase_guidance",
     {
       title: "Cycle phase guidance",
-      description: "Returns evidence-informed nutrition + training + hydration recommendations for a given phase.",
+      description: "Returns evidence-informed nutrition + training + hydration recommendations for a given phase. v0.3.3 supports the `luteal_extended` phase (PCOS / amenorrhea placeholder) and accepts a `cycle_irregular` flag that surfaces the clinician-defer warning in the response.",
       inputSchema: {
         phase: z.enum(CYCLE_PHASES),
+        cycle_irregular: z
+          .boolean()
+          .optional()
+          .describe(
+            "v0.3.3 — PCOS / irregular-cycle mode. When true, attaches a clinician-defer warning to the response. Default false.",
+          ),
       },
     },
-    async ({ phase }) => jsonResponse(guidanceForPhase(phase)),
+    async ({ phase, cycle_irregular }) => {
+      const guidance = guidanceForPhase(phase);
+      if (cycle_irregular) {
+        return jsonResponse({ ...guidance, warning: IRREGULAR_MODE_WARNING, irregular_window: true });
+      }
+      return jsonResponse(guidance);
+    },
   );
 
   server.registerTool(
@@ -164,23 +200,27 @@ export function registerCycleTools(server: McpServer): void {
     {
       title: "Cycle recommend nutrition",
       description:
-        "Given period history, returns nutrition recommendations for the user's current phase. Combine with wellness-nourish for full meal planning.",
+        "Given period history, returns nutrition recommendations for the user's current phase. Combine with wellness-nourish for full meal planning. v0.3.3 supports `cycle_irregular: true` for PCOS-aware mode.",
       inputSchema: {
         history: HistorySchema,
         today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        cycle_irregular: z.boolean().optional(),
       },
     },
-    async ({ history, today }) => {
+    async ({ history, today, cycle_irregular }) => {
       const reference = today ? new Date(today + "T12:00:00Z") : new Date();
-      const estimate = estimatePhase(history as CycleHistoryEntry[], reference);
+      const estimate = estimatePhase(history as CycleHistoryEntry[], reference, { cycle_irregular });
       const guidance = guidanceForPhase(estimate.phase);
-      return jsonResponse({
+      const payload: Record<string, unknown> = {
         phase: estimate.phase,
         cycle_day: estimate.cycle_day,
         confidence: estimate.confidence,
         nutrition: guidance.nutrition,
         notes: guidance.notes,
-      });
+      };
+      if (estimate.warning) payload.warning = estimate.warning;
+      if (estimate.irregular_window) payload.irregular_window = true;
+      return jsonResponse(payload);
     },
   );
 
@@ -189,23 +229,27 @@ export function registerCycleTools(server: McpServer): void {
     {
       title: "Cycle recommend training",
       description:
-        "Given period history, returns training recommendations for the user's current phase. Pair with WHOOP/Oura/Garmin recovery for late-luteal load adjustments.",
+        "Given period history, returns training recommendations for the user's current phase. Pair with WHOOP/Oura/Garmin recovery for late-luteal load adjustments. v0.3.3 supports `cycle_irregular: true` for PCOS-aware mode.",
       inputSchema: {
         history: HistorySchema,
         today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        cycle_irregular: z.boolean().optional(),
       },
     },
-    async ({ history, today }) => {
+    async ({ history, today, cycle_irregular }) => {
       const reference = today ? new Date(today + "T12:00:00Z") : new Date();
-      const estimate = estimatePhase(history as CycleHistoryEntry[], reference);
+      const estimate = estimatePhase(history as CycleHistoryEntry[], reference, { cycle_irregular });
       const guidance = guidanceForPhase(estimate.phase);
-      return jsonResponse({
+      const payload: Record<string, unknown> = {
         phase: estimate.phase,
         cycle_day: estimate.cycle_day,
         confidence: estimate.confidence,
         training: guidance.training,
         notes: guidance.notes,
-      });
+      };
+      if (estimate.warning) payload.warning = estimate.warning;
+      if (estimate.irregular_window) payload.irregular_window = true;
+      return jsonResponse(payload);
     },
   );
 
@@ -213,28 +257,31 @@ export function registerCycleTools(server: McpServer): void {
     "cycle_full_report",
     {
       title: "Cycle full report",
-      description: "Single-call report: phase + nutrition + training + hydration + next-period estimate. Includes a TL;DR string for quick agent rendering.",
+      description: "Single-call report: phase + nutrition + training + hydration + next-period estimate. Includes a TL;DR string for quick agent rendering. v0.3.3 supports `cycle_irregular: true` for PCOS-aware mode.",
       inputSchema: {
         history: HistorySchema,
         today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        cycle_irregular: z.boolean().optional(),
       },
     },
-    async ({ history, today }) => {
+    async ({ history, today, cycle_irregular }) => {
       const reference = today ? new Date(today + "T12:00:00Z") : new Date();
-      const estimate = estimatePhase(history as CycleHistoryEntry[], reference);
+      const estimate = estimatePhase(history as CycleHistoryEntry[], reference, { cycle_irregular });
       const guidance = guidanceForPhase(estimate.phase);
       const lateBit = estimate.delay_flag
         ? ` Cycle is ${estimate.days_past_due} day(s) past predicted start — consider pregnancy test if applicable.`
         : estimate.phase === "late_luteal"
           ? ` Cycle is ${estimate.days_past_due ?? 0} day(s) past predicted start — common short-term delay.`
-          : "";
+          : estimate.phase === "luteal_extended"
+            ? ` Cycle is ${estimate.cycle_day - 1} days since last period — irregular-mode extended window.`
+            : "";
       const tldr =
         `Phase: ${estimate.phase} (cycle day ${estimate.cycle_day} of ~${estimate.cycle_length_days}).${lateBit} ` +
         `Eat: ${guidance.nutrition.emphasize.slice(0, 2).join(", ")}. ` +
         `Train: ${guidance.training.style} (${guidance.training.intensity}). ` +
         `Hydrate: ${guidance.nutrition.hydration_ml_target} ml. ` +
         `Next period: ~${estimate.next_period_estimate}.`;
-      return jsonResponse({
+      const payload: Record<string, unknown> = {
         tldr,
         estimate,
         guidance,
@@ -243,7 +290,30 @@ export function registerCycleTools(server: McpServer): void {
           "Pair training with `whoop-mcp` / `garminmcp` / `ouramcp` recovery for late-luteal load adjustments.",
           "Pair hydration target with `wellness-nourish` hydration tools.",
         ],
-      });
+      };
+      if (estimate.warning) payload.warning = estimate.warning;
+      return jsonResponse(payload);
+    },
+  );
+
+  server.registerTool(
+    "cycle_irregular_check",
+    {
+      title: "Cycle irregularity check",
+      description:
+        "v0.3.3 — Given the user's last 3+ cycle lengths (in days), reports whether the cycles look regular or irregular based on a stdev/CV/max-length heuristic. Use this BEFORE deciding whether to set `cycle_irregular: true` on the other tools. NOT a clinical diagnosis — surfaces a clinician hint when irregular.",
+      inputSchema: {
+        cycle_lengths_days: z
+          .array(z.number().int().positive())
+          .min(1)
+          .describe(
+            "Array of recent cycle lengths in days. Need 3+ for a meaningful result; fewer returns a 'log more periods' recommendation.",
+          ),
+      },
+    },
+    async ({ cycle_lengths_days }) => {
+      const report = checkIrregularity(cycle_lengths_days as number[]);
+      return jsonResponse(report);
     },
   );
 

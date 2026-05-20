@@ -2,14 +2,16 @@
 /**
  * Unit tests for the pure cycle-engine functions.
  *
- * Focus: the v0.3.2 late_luteal / delay_flag edge cases.
+ * Focus: the v0.3.2 late_luteal / delay_flag edge cases and v0.3.3 PCOS mode.
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
 execFileSync("npm", ["run", "build"], { stdio: "inherit" });
 
-const { estimatePhase, phaseFromDay, guidanceForPhase } = await import("../dist/services/cycle-engine.js");
+const { estimatePhase, phaseFromDay, guidanceForPhase, checkIrregularity, estimateAverageCycleLength } = await import(
+  "../dist/services/cycle-engine.js"
+);
 
 // ---------- phaseFromDay basic boundaries ----------
 // 28-day cycle, 5-day period, 14-day luteal: ovulation day = 14
@@ -104,5 +106,92 @@ assert.ok(lateGuidance.nutrition.emphasize.some((s) => /magnesium/i.test(s)));
 assert.ok(lateGuidance.notes.some((n) => /pregnancy test/i.test(n)), "late_luteal notes should mention pregnancy test");
 assert.ok(lateGuidance.notes.some((n) => /log the eventual/i.test(n)), "late_luteal notes should hint at logging actual start");
 console.log("✓ guidanceForPhase('late_luteal') returns expected shape");
+
+// ---------- v0.3.3 PCOS / irregular-cycle mode ----------
+
+// 45-day cycle in standard mode → filtered out of average (45 is the boundary; ≤45 still accepted),
+// but a 60-day cycle is filtered out. In irregular mode, both are accepted.
+const long45 = estimateAverageCycleLength(
+  [{ start_date: "2026-02-01" }, { start_date: "2026-03-18" }], // 45 days
+  { cycle_irregular: true },
+);
+assert.equal(long45, 45, "irregular mode accepts 45-day cycle in average");
+console.log("✓ estimateAverageCycleLength irregular mode: 45-day cycle → 45");
+
+const long60 = estimateAverageCycleLength(
+  [{ start_date: "2026-02-01" }, { start_date: "2026-04-02" }], // 60 days
+  { cycle_irregular: true },
+);
+assert.equal(long60, 60, "irregular mode accepts 60-day cycle in average");
+console.log("✓ estimateAverageCycleLength irregular mode: 60-day cycle → 60");
+
+const long60Standard = estimateAverageCycleLength([
+  { start_date: "2026-02-01" },
+  { start_date: "2026-04-02" }, // 60 days, filtered out in standard mode
+]);
+assert.equal(long60Standard, 28, "standard mode filters out 60-day cycle → falls back to default 28");
+console.log("✓ estimateAverageCycleLength standard mode: 60-day cycle filtered out, falls back to default");
+
+// 45-day cycle history, today is mid-cycle in irregular mode
+const pcos45 = estimatePhase(
+  [{ start_date: "2026-02-01" }, { start_date: "2026-03-18" }, { start_date: "2026-05-02" }],
+  new Date("2026-05-20T12:00:00Z"),
+  { cycle_irregular: true },
+);
+assert.equal(pcos45.confidence, "low", "irregular mode caps confidence at low even with 3 history entries");
+assert.ok(pcos45.warning, "irregular mode response has warning");
+assert.ok(/clinician/i.test(pcos45.warning), "warning mentions clinician");
+console.log(`✓ estimatePhase irregular 45-day mid-cycle: phase=${pcos45.phase}, confidence=low, has warning`);
+
+// Long single cycle (60 days since last) → luteal_extended
+const pcos60Extended = estimatePhase(
+  [{ start_date: "2026-03-01" }],
+  new Date("2026-05-01T12:00:00Z"), // 61 days later
+  { cycle_irregular: true },
+);
+assert.equal(pcos60Extended.phase, "luteal_extended", "60+ days since last + irregular → luteal_extended");
+assert.equal(pcos60Extended.irregular_window, true, "luteal_extended sets irregular_window");
+assert.equal(pcos60Extended.late_luteal, true, "luteal_extended sets late_luteal flag");
+assert.ok(pcos60Extended.notes.some((n) => /extended threshold/i.test(n)), "notes mention extended threshold");
+console.log("✓ estimatePhase irregular 60+ days since last → luteal_extended + irregular_window + late_luteal");
+
+// luteal_extended guidance is returned with the new shape
+const extGuidance = guidanceForPhase("luteal_extended");
+assert.equal(extGuidance.phase, "luteal_extended");
+assert.ok(extGuidance.nutrition.emphasize.some((s) => /insulin/i.test(s) || /protein/i.test(s) || /sugar/i.test(s) || /carb/i.test(s)));
+assert.ok(extGuidance.notes.some((n) => /clinician/i.test(n)), "luteal_extended guidance mentions clinician");
+console.log("✓ guidanceForPhase('luteal_extended') returns PCOS-aware shape");
+
+// stdev > 7 → irregular
+const stdev12 = checkIrregularity([28, 50, 35, 25, 40]);
+assert.equal(stdev12.is_irregular, true, "stdev > 7 days → irregular");
+assert.ok(stdev12.stdev_length > 7);
+console.log(`✓ checkIrregularity: stdev=${stdev12.stdev_length} → irregular`);
+
+// any cycle > 35 → irregular
+const oneOutlier = checkIrregularity([28, 27, 40]);
+assert.equal(oneOutlier.is_irregular, true, "single 40-day outlier → irregular");
+assert.ok(/clinician/i.test(oneOutlier.recommendation));
+console.log(`✓ checkIrregularity: 28/27/40 → irregular (max=${oneOutlier.max})`);
+
+// CV > 0.15 → irregular
+// stdev/mean > 0.15. With cycles [25, 30, 36]: mean=30.33, stdev≈4.5, cv≈0.149 → just under
+// With [22, 30, 38]: mean=30, stdev≈6.5, cv≈0.218 → irregular
+const cvHigh = checkIrregularity([22, 30, 38]);
+assert.equal(cvHigh.is_irregular, true, "CV > 0.15 → irregular");
+assert.ok(cvHigh.coefficient_of_variation > 0.15);
+console.log(`✓ checkIrregularity: CV=${cvHigh.coefficient_of_variation} → irregular`);
+
+// Regular cycles → not flagged
+const regular = checkIrregularity([28, 29, 27]);
+assert.equal(regular.is_irregular, false, "28/29/27 → regular");
+assert.ok(/regular/i.test(regular.recommendation));
+console.log("✓ checkIrregularity: 28/29/27 → regular, no flag");
+
+// Fewer than 3 lengths → insufficient
+const tooFew = checkIrregularity([28]);
+assert.equal(tooFew.is_irregular, false);
+assert.ok(/at least 3/i.test(tooFew.recommendation));
+console.log("✓ checkIrregularity: 1 length → 'log more periods' recommendation");
 
 console.log("\nall cycle-engine unit tests passed.");

@@ -2,7 +2,7 @@
 <h1 align="center">Wellness Cycle Coach</h1>
 
 <h3 align="center">
-  Stateless menstrual cycle coach MCP for AI agents.<br>
+  Stateless menstrual cycle coach MCP for AI agents — now with PCOS-aware mode.<br>
   Built so AI finally serves the <strong>50% of users</strong> agents have ignored — without ever storing the data.
 </h3>
 
@@ -33,7 +33,7 @@
 
 ## Overview
 
-Pass in period start dates (from any source — Apple Health Cycle, Garmin women's health, Fitbit female health, or direct user input) and get back the user's current phase plus phase-aware recommendations for nutrition, training, and hydration. **Stateless** — the MCP itself never persists cycle data.
+Pass in period start dates (from any source — Apple Health Cycle, Garmin women's health, Fitbit female health, or direct user input) and get back the user's current phase plus phase-aware recommendations for nutrition, training, and hydration. **Stateless** — the MCP itself never persists cycle data. **Supports PCOS-aware mode via the `cycle_irregular` flag (v0.3.3)** — accepts cycles 21-90 days, caps confidence at 'low', and returns a `luteal_extended` placeholder when standard 14-day-luteal math no longer applies.
 
 ## Try It In 60 Seconds
 
@@ -124,7 +124,8 @@ Run `wellness-cycle-coach doctor` to inspect.
 - Not medical advice or diagnosis.
 - Not a fertility tracker or contraception aid (consult a clinician).
 - Not a replacement for talking to a healthcare provider about painful, abnormal, or absent periods.
-- Not specialized for PCOS, perimenopause, post-pill, or other complex contexts (yet — see CONTRIBUTING.md).
+- PCOS / irregular cycles supported via `cycle_irregular: true` (v0.3.3), but this is NOT a substitute for clinical care — see clinician for fertility, contraception, or symptom-management decisions.
+- Not specialized for perimenopause or post-pill (yet — see CONTRIBUTING.md).
 
 ## Roadmap
 

@@ -22,6 +22,7 @@ const TOOLS = [
   "cycle_demo",
   "cycle_estimate_phase",
   "cycle_full_report",
+  "cycle_irregular_check",
   "cycle_onboarding",
   "cycle_phase_guidance",
   "cycle_predict_next_period",
@@ -78,6 +79,7 @@ export function buildAgentManifest(client: CycleCoachClient = "generic"): CycleC
       "Always state confidence level — a single logged period is 'low' confidence.",
       "Cross-reference with WHOOP/Garmin/Oura recovery for late-luteal fatigue patterns.",
       "Never claim medical accuracy. Defer to a clinician for fertility, pregnancy, or symptom-management decisions.",
+      "If the user has PCOS, irregular cycles, or unexplained long cycles, call cycle_irregular_check first and pass cycle_irregular: true on subsequent calls. The coach will use the luteal_extended placeholder when standard 14-day-luteal math no longer applies.",
     ],
     community: {
       repo: "https://github.com/davidmosiah/wellness-cycle-coach",

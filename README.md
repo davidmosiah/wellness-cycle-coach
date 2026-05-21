@@ -133,6 +133,14 @@ Run `wellness-cycle-coach doctor` to inspect.
 - **v0.3** — symptom logging surface + symptom-aware guidance adjustments (cramps → magnesium emphasis, mood drop → B-vitamin emphasis).
 - **v0.4** — non-English locale support starting with pt-BR.
 
+## 📧 Contact & Support
+
+- 📨 **support@delx.ai** — general questions, integration help, partnerships
+- 🐛 **Bug reports / feature requests** — [GitHub Issues](https://github.com/davidmosiah/wellness-cycle-coach/issues)
+- 🐦 **Updates** — [@delx369](https://x.com/delx369) on X
+- 🌐 **Site** — [wellness.delx.ai](https://wellness.delx.ai)
+
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

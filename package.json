@@ -1,7 +1,7 @@
 {
   "name": "wellness-cycle-coach",
   "version": "0.3.3",
-  "description": "Local-first menstrual cycle coach MCP for AI agents — orchestrates Apple Health Cycle, Garmin women's health, and Fitbit female health into phase-aware nutrition and recovery context.",
+  "description": "Local-first menstrual cycle coach MCP for AI agents \u2014 orchestrates Apple Health Cycle, Garmin women's health, and Fitbit female health into phase-aware nutrition and recovery context.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -37,7 +37,8 @@
     "url": "git+https://github.com/davidmosiah/wellness-cycle-coach.git"
   },
   "bugs": {
-    "url": "https://github.com/davidmosiah/wellness-cycle-coach/issues"
+    "url": "https://github.com/davidmosiah/wellness-cycle-coach/issues",
+    "email": "support@delx.ai"
   },
   "keywords": [
     "mcp",

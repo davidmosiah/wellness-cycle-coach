@@ -1,7 +1,7 @@
 {
   "name": "wellness-cycle-coach",
   "version": "0.3.3",
-  "description": "Local-first menstrual cycle coach MCP for AI agents \u2014 orchestrates Apple Health Cycle, Garmin women's health, and Fitbit female health into phase-aware nutrition and recovery context.",
+  "description": "Local-first menstrual cycle coach MCP for AI agents — orchestrates Apple Health Cycle, Garmin women's health, and Fitbit female health into phase-aware nutrition and recovery context.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -51,7 +51,7 @@
     "delx-wellness"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.21.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "zod": "^4.4.3"
@@ -67,5 +67,11 @@
   "publishConfig": {
     "access": "public"
   },
-  "main": "dist/index.js"
+  "main": "dist/index.js",
+  "overrides": {
+    "qs": "6.15.2",
+    "hono": "4.12.22",
+    "fast-uri": "3.1.2",
+    "ip-address": "10.2.0"
+  }
 }

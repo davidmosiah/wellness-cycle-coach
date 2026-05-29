@@ -2,8 +2,8 @@
 <h1 align="center">Wellness Cycle Coach</h1>
 
 <h3 align="center">
-  Stateless menstrual cycle coach MCP for AI agents — now with PCOS-aware mode.<br>
-  Built so AI finally serves the <strong>50% of users</strong> agents have ignored — without ever storing the data.
+  Menstrual cycle coach MCP for AI agents — now with PCOS-aware mode.<br>
+  Built so AI finally serves the <strong>50% of users</strong> agents have ignored — without ever storing cycle data.
 </h3>
 
 <p align="center">
@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <strong>🌙 Why this exists:</strong> Most AI agents treat the body as a single context-free unit. But energy, recovery, training tolerance, nutrient needs and even cognitive bandwidth shift across the menstrual cycle. <code>wellness-cycle-coach</code> gives any agent <strong>phase-aware</strong> guidance — and never stores the data to do it.
+  <strong>🌙 Why this exists:</strong> Most AI agents treat the body as a single context-free unit. But energy, recovery, training tolerance, nutrient needs and even cognitive bandwidth shift across the menstrual cycle. <code>wellness-cycle-coach</code> gives any agent <strong>phase-aware</strong> guidance — and never stores cycle data to do it.
 </p>
 
 > ⚡ **One-command install** — pick your runtime:
@@ -67,7 +67,7 @@ Then in your agent:
 
 Returns current phase + nutrition emphasize/moderate/avoid + training style/intensity + hydration target + next-period estimate.
 
-## Tools (11)
+## Tools (17)
 
 | Tool | Purpose |
 |---|---|
@@ -82,6 +82,12 @@ Returns current phase + nutrition emphasize/moderate/avoid + training style/inte
 | **`cycle_recommend_nutrition`** | **Phase-aware nutrition for current phase** |
 | **`cycle_recommend_training`** | **Phase-aware training for current phase** |
 | **`cycle_full_report`** | **Single-call combined report** |
+| `cycle_irregular_check` | PCOS / irregular-cycle screening from history |
+| `cycle_quickstart` | Minimal getting-started walkthrough |
+| `cycle_profile_get` | Read the shared Delx Wellness profile (read-only) |
+| `cycle_profile_update` | Persist opt-in profile prefs (requires explicit user intent) |
+| `cycle_onboarding` | 11-question onboarding flow for the shared profile |
+| `cycle_demo` | Sample request/response for quick exploration |
 
 ## The 4-phase model
 
@@ -113,9 +119,10 @@ Fitbit female health → period dates     ┘                                  �
 
 ## Privacy
 
-- ✅ **Stateless** — no period dates persisted.
+- ✅ **Stateless for cycle data** — period dates are never persisted; they stay in process memory for the duration of the call and evaporate.
+- ✅ **Opt-in local preferences** — the `cycle_profile_*` tools can persist non-secret wellness preferences (name, goals, devices, training/nutrition context) to `~/.delx-wellness/profile.json`, but only when the user explicitly asks (`cycle_profile_update` requires `explicit_user_intent: true`). Secrets (tokens, API keys, biomarkers) are rejected at write time.
 - ✅ **Offline-capable** — pure-function computation. No outbound calls.
-- ✅ **Tool-arg-only data** — agent passes data in via the MCP request and it stays in process memory.
+- ✅ **Tool-arg-only cycle data** — the agent passes period history in via the MCP request and it stays in process memory.
 
 Run `wellness-cycle-coach doctor` to inspect.
 

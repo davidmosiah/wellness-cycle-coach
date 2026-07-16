@@ -1,6 +1,6 @@
 {
   "name": "wellness-cycle-coach",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Local-first menstrual cycle coach MCP for AI agents — orchestrates Apple Health Cycle, Garmin women's health, and Fitbit female health into phase-aware nutrition and recovery context.",
   "license": "MIT",
   "type": "module",
@@ -70,7 +70,7 @@
   "main": "dist/index.js",
   "overrides": {
     "qs": "6.15.2",
-    "hono": "4.12.22",
+    "hono": "4.12.30",
     "fast-uri": "3.1.2",
     "ip-address": "10.2.0"
   }

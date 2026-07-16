@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-07-16
+
+### Fixed
+
+- Synchronized the runtime, package, and MCP Registry versions; the runtime had remained on 0.3.4 while package metadata advertised 0.3.5.
+- Updated the transitive Hono security override to 4.12.30. The computational boundary remains covered by the cycle-engine contract suite, including irregular cycles, late-luteal behavior, and PCOS-aware guidance.
+
 ## [0.3.3] - 2026-05-20
 
 ### Added

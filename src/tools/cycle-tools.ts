@@ -20,11 +20,68 @@ import {
   type WellnessProfileDocument,
 } from "../services/profile-store.js";
 import { CYCLE_PHASES, IRREGULAR_MODE_WARNING, UPSTREAM_CONNECTORS } from "../constants.js";
+import { PrivacyModeSchema } from "../schemas/common.js";
 
-function jsonResponse(payload: unknown) {
+/** Mutation-name patterns (aligned with mcp-scorecard MUTATION_PATTERNS). */
+const MUTATION_NAME_RE =
+  /(^|_)(set|update|delete|create|pause|resume|enable|disable|cancel|publish|send|remove|add|insert|patch|put|post|exchange|revoke|grant|authorize|reset|clear|forget|destroy|wipe|logout|signout|sign_out|log_intake|log_water|bulk_log|remember|undo|snooze|dismiss)(_|$)/i;
+
+function decorateReadToolConfig(
+  name: string,
+  config: {
+    title?: string;
+    description?: string;
+    inputSchema?: Record<string, unknown>;
+    annotations?: Record<string, unknown>;
+    [key: string]: unknown;
+  },
+) {
+  if (MUTATION_NAME_RE.test(name)) return config;
+  const existingSchema = (config.inputSchema ?? {}) as Record<string, unknown>;
+  const existingAnn = (config.annotations ?? {}) as Record<string, unknown>;
   return {
-    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
-    structuredContent: payload as Record<string, unknown>,
+    ...config,
+    inputSchema: {
+      ...existingSchema,
+      privacy_mode: existingSchema.privacy_mode ?? PrivacyModeSchema,
+    },
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: existingAnn.openWorldHint ?? false,
+      ...existingAnn,
+      readOnlyHint: true,
+    },
+  };
+}
+
+/** Light redaction for privacy_mode=summary (omit free-text notes). */
+function applyPrivacyMode(payload: Record<string, unknown>, privacy_mode?: string): Record<string, unknown> {
+  const mode = privacy_mode ?? "structured";
+  if (mode !== "summary") return { ...payload, privacy_mode: mode };
+  const out: Record<string, unknown> = { ...payload, privacy_mode: mode };
+  delete out.notes;
+  if (out.guidance && typeof out.guidance === "object" && out.guidance !== null) {
+    const guidance = { ...(out.guidance as Record<string, unknown>) };
+    delete guidance.notes;
+    out.guidance = guidance;
+  }
+  if (out.estimate && typeof out.estimate === "object" && out.estimate !== null) {
+    const estimate = { ...(out.estimate as Record<string, unknown>) };
+    delete estimate.notes;
+    out.estimate = estimate;
+  }
+  return out;
+}
+
+function jsonResponse(payload: unknown, privacy_mode?: string) {
+  const shaped =
+    privacy_mode !== undefined && payload && typeof payload === "object"
+      ? applyPrivacyMode(payload as Record<string, unknown>, privacy_mode)
+      : payload;
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(shaped, null, 2) }],
+    structuredContent: shaped as Record<string, unknown>,
   };
 }
 
@@ -36,6 +93,14 @@ const HistorySchema = z.array(
 );
 
 export function registerCycleTools(server: McpServer): void {
+  const registerTool = server.registerTool.bind(server) as (
+    name: string,
+    config: Record<string, unknown>,
+    handler: unknown,
+  ) => unknown;
+  (server as unknown as { registerTool: typeof registerTool }).registerTool = (name, config, handler) =>
+    registerTool(name, decorateReadToolConfig(name, config), handler);
+
   server.registerTool(
     "cycle_agent_manifest",
     {
@@ -122,10 +187,12 @@ export function registerCycleTools(server: McpServer): void {
           ),
       },
     },
-    async ({ history, today, cycle_irregular }) => {
+    async (params) => {
+      const { history, today, cycle_irregular } = params;
+      const privacy_mode = (params as { privacy_mode?: string }).privacy_mode;
       const referenceDate = today ? new Date(today + "T12:00:00Z") : new Date();
       const estimate = estimatePhase(history as CycleHistoryEntry[], referenceDate, { cycle_irregular });
-      return jsonResponse(estimate);
+      return jsonResponse(estimate, privacy_mode);
     },
   );
 
@@ -264,7 +331,9 @@ export function registerCycleTools(server: McpServer): void {
         cycle_irregular: z.boolean().optional(),
       },
     },
-    async ({ history, today, cycle_irregular }) => {
+    async (params) => {
+      const { history, today, cycle_irregular } = params;
+      const privacy_mode = (params as { privacy_mode?: string }).privacy_mode;
       const reference = today ? new Date(today + "T12:00:00Z") : new Date();
       const estimate = estimatePhase(history as CycleHistoryEntry[], reference, { cycle_irregular });
       const guidance = guidanceForPhase(estimate.phase);
@@ -292,7 +361,7 @@ export function registerCycleTools(server: McpServer): void {
         ],
       };
       if (estimate.warning) payload.warning = estimate.warning;
-      return jsonResponse(payload);
+      return jsonResponse(payload, privacy_mode);
     },
   );
 

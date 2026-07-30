@@ -41,7 +41,21 @@ console.log(`✓ all ${EXPECTED_TOOLS.size} tools registered`);
 const manifest = JSON.parse((await client.callTool({ name: "cycle_agent_manifest", arguments: {} })).content[0].text);
 assert.equal(manifest.name, "wellness-cycle-coach-mcp");
 assert.ok(manifest.tools.length >= EXPECTED_TOOLS.size);
-console.log("✓ cycle_agent_manifest valid shape");
+assert.ok(Array.isArray(manifest.standard_tools) && manifest.standard_tools.length > 0);
+console.log("✓ cycle_agent_manifest valid shape (incl. standard_tools)");
+
+const privacyModeTool = tools.find((t) => t.name === "cycle_estimate_phase");
+assert.ok(privacyModeTool, "cycle_estimate_phase must exist");
+assert.ok(
+  privacyModeTool.inputSchema?.properties?.privacy_mode || privacyModeTool.inputSchema?.properties?.privacyMode,
+  "cycle_estimate_phase must expose privacy_mode in inputSchema",
+);
+assert.equal(privacyModeTool.annotations?.readOnlyHint, true, "cycle_estimate_phase must be annotated readOnlyHint");
+console.log("✓ privacy_mode + readOnlyHint present on cycle_estimate_phase");
+
+const { resources } = await client.listResources();
+assert.ok(resources.length >= 3, `expected ≥3 MCP resources, got ${resources.length}`);
+console.log(`✓ listResources returns ${resources.length} resources`);
 
 const phaseTest = JSON.parse(
   (

@@ -47,6 +47,7 @@ export interface CycleCoachAgentManifest {
   supported_clients: CycleCoachClient[];
   install: { command: string; args: string[]; optional_env: string[] };
   recommended_first_calls: string[];
+  standard_tools: ReadonlyArray<string>;
   tools: ReadonlyArray<string>;
   resources: string[];
   agent_rules: string[];
@@ -67,10 +68,13 @@ export function buildAgentManifest(client: CycleCoachClient = "generic"): CycleC
       optional_env: ["WELLNESS_CYCLE_COACH_LOCAL_DIR"],
     },
     recommended_first_calls: RECOMMENDED_FIRST_CALLS,
+    standard_tools: TOOLS,
     tools: TOOLS,
     resources: [
       "wellness-cycle-coach://agent-manifest",
       "wellness-cycle-coach://capabilities",
+      "wellness-cycle-coach://connection-status",
+      "wellness-cycle-coach://inventory",
       "wellness-cycle-coach://privacy-audit",
     ],
     agent_rules: [
@@ -80,6 +84,7 @@ export function buildAgentManifest(client: CycleCoachClient = "generic"): CycleC
       "Cross-reference with WHOOP/Garmin/Oura recovery for late-luteal fatigue patterns.",
       "Never claim medical accuracy. Defer to a clinician for fertility, pregnancy, or symptom-management decisions.",
       "If the user has PCOS, irregular cycles, or unexplained long cycles, call cycle_irregular_check first and pass cycle_irregular: true on subsequent calls. The coach will use the luteal_extended placeholder when standard 14-day-luteal math no longer applies.",
+      "privacy_mode=summary on read tools omits free-text notes; structured/raw return full payloads.",
     ],
     community: {
       repo: "https://github.com/davidmosiah/wellness-cycle-coach",

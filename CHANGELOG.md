@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-07-30
+
+### Added
+
+- **Agent-readiness (mcp-scorecard):** real `privacy_mode` input on all read tools (`summary|structured|raw`), full MCP resource set (`wellness-cycle-coach://agent-manifest|capabilities|connection-status|inventory|privacy-audit`), `readOnlyHint` annotations on read tools, and `standard_tools` on `cycle_agent_manifest`.
+
 ## [0.3.6] - 2026-07-16
 
 ### Fixed

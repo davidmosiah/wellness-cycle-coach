@@ -525,6 +525,10 @@ export function registerCycleTools(server: McpServer): void {
       inputSchema: {},
     },
     async () => {
+      // Synthetic history. `scripts/demo-contract-test.mjs` feeds `sample_input`
+      // back into the REAL `cycle_full_report` tool and fails the build when the
+      // shape below diverges — in either direction — from what that tool returns.
+      // If you change the full-report payload, that gate fails and points here.
       const sampleHistory: CycleHistoryEntry[] = [
         { start_date: "2026-03-04" },
         { start_date: "2026-04-01" },
@@ -532,20 +536,35 @@ export function registerCycleTools(server: McpServer): void {
       ];
       const estimate = estimatePhase(sampleHistory, new Date("2026-05-15T12:00:00Z"));
       const guidance = guidanceForPhase(estimate.phase);
+      // Mirrors the tldr assembled by `cycle_full_report`, including the trailing
+      // next-period sentence. A late cycle additionally carries a delay clause
+      // right after the phase sentence — see the note below.
       const tldr =
         `Phase: ${estimate.phase} (cycle day ${estimate.cycle_day} of ~${estimate.cycle_length_days}). ` +
         `Eat: ${guidance.nutrition.emphasize.slice(0, 2).join(", ")}. ` +
         `Train: ${guidance.training.style} (${guidance.training.intensity}). ` +
-        `Hydrate: ${guidance.nutrition.hydration_ml_target} ml.`;
+        `Hydrate: ${guidance.nutrition.hydration_ml_target} ml. ` +
+        `Next period: ~${estimate.next_period_estimate}.`;
       return jsonResponse({
         ok: true,
         is_demo: true,
         sample_input: { history: sampleHistory, today: "2026-05-15" },
-        sample_output: { tldr, estimate, guidance },
+        sample_output: {
+          tldr,
+          estimate,
+          guidance,
+          cross_connector_hints: [
+            "Pair nutrition with `wellness-nourish` for meal planning that respects phase emphasis.",
+            "Pair training with `whoop-mcp` / `garminmcp` / `ouramcp` recovery for late-luteal load adjustments.",
+            "Pair hydration target with `wellness-nourish` hydration tools.",
+          ],
+        },
         notes: [
           "This is synthetic data showing the shape of cycle_full_report output.",
           "In real use, the agent passes the user's actual period start dates.",
           "Confidence rises as more history accumulates (3+ periods = medium, 6+ = high).",
+          "This sample is an on-time luteal cycle. Two fields are conditional and therefore absent here: `estimate.warning` + `estimate.irregular_window` (only with cycle_irregular: true) and a top-level `warning` (mirrored from the estimate). `estimate.late_luteal` appears only in irregular mode.",
+          "When the cycle is late, `tldr` carries an extra clause after the phase sentence ('Cycle is N day(s) past predicted start...'). Parse `estimate.days_past_due` / `estimate.delay_flag` rather than the tldr text.",
         ],
       });
     },

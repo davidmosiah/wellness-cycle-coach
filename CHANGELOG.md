@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-01
+
+### Fixed
+
+- **`cycle_demo` advertised an incomplete `cycle_full_report` contract.** The demo exists so an agent can see the payload shape before making a real call, but nothing ever compared it against the real tool, and it had drifted:
+  - `cross_connector_hints` — the real `cycle_full_report` returns this top-level array on every call; the demo omitted it entirely. An agent that built its rendering off the demo never knew the field existed and silently dropped the cross-connector guidance (nourish meal planning, WHOOP/Garmin/Oura recovery, hydration).
+  - `tldr` — the demo re-assembled this string by hand and had lost the trailing `Next period: ~YYYY-MM-DD.` sentence. `tldr` is the field agents render verbatim, so the demo taught that the next-period date is absent from it; an agent appending its own would have shown the date twice.
+  - The demo also gave no signal that `warning`, `estimate.warning`, `estimate.irregular_window` and `estimate.late_luteal` exist at all (they appear only with `cycle_irregular: true`), nor that `tldr` carries an extra delay clause on a late cycle. Both are now stated in `notes`, with a pointer to parse `estimate.days_past_due` / `estimate.delay_flag` instead of the tldr text.
+
+  No invented fields were found — everything the demo showed was real. The damage was in what it left out.
+
+### Added
+
+- **`npm run test:demo-contract`, wired into `npm test`.** The gate opens a real MCP stdio session, calls `cycle_demo`, feeds the demo's own `sample_input` back into the real `cycle_full_report`, and fails the build when the key sets diverge in either direction — a key the demo invents, or a contract key the demo omits. It also asserts `tldr` is byte-identical for the same input, and that every field the demo excuses itself from showing as "irregular-mode only" genuinely appears in the irregular-mode payload, so the allowlist cannot become its own fiction. This is what keeps the demo honest between releases instead of drifting for versions again.
+
 ## [0.3.7] - 2026-07-30
 
 ### Added

@@ -166,3 +166,13 @@ Run `wellness-cycle-coach doctor` to inspect.
 MIT — see [LICENSE](LICENSE).
 
 <sub>wellness-cycle-coach is independent research-software. Not affiliated with Clue, Flo, Stardust, or any other cycle-tracking app. Not medical advice.</sub>
+
+## Skill or MCP
+
+Same package, two doors. MCP registers tools on stdio/HTTP. The [skill](skill/SKILL.md) can drive the **same** tools through the CLI when the client has no MCP:
+
+```bash
+npx -y wellness-cycle-coach call cycle_connection_status --json '{}'
+```
+
+Copy `skill/SKILL.md` into your agent skills dir.

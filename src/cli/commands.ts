@@ -1,6 +1,7 @@
 import { NPM_PACKAGE_NAME, SERVER_VERSION } from "../constants.js";
 import { buildCapabilities } from "../services/capabilities.js";
 import { buildPrivacyAudit } from "../services/privacy-audit.js";
+import { runToolCall } from "./tool-calls.js";
 import {
   getOnboardingFlow,
   getProfile,
@@ -8,7 +9,7 @@ import {
   missingCriticalFields,
 } from "../services/profile-store.js";
 
-const COMMANDS = new Set(["status", "doctor", "setup", "onboarding"]);
+const COMMANDS = new Set(["call", "status", "doctor", "setup", "onboarding"]);
 
 function printCommunityCTA(): void {
   if (process.env.WELLNESS_CYCLE_COACH_QUIET === "1") return;
@@ -30,6 +31,8 @@ export function isCliCommand(args: string[]): boolean {
 export async function runCliCommand(args: string[]): Promise<number> {
   const [command, ...rest] = args;
   switch (command) {
+      case "call":
+        return runToolCall(rest);
     case "status":
       console.log(JSON.stringify({ name: NPM_PACKAGE_NAME, version: SERVER_VERSION, stateless: true }, null, 2));
       printCommunityCTA();

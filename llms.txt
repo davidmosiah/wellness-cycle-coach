@@ -43,3 +43,6 @@ Safety:
 - Never surfaces predictions to third parties without explicit consent.
 - Defer to clinician for fertility, pregnancy, or symptom-management decisions.
 - Treat menstrual cycle data with the same sensitivity as medical records.
+
+Skill (same gates, no MCP client required): skill/SKILL.md
+npx -y wellness-cycle-coach call <tool> --json '{...}'

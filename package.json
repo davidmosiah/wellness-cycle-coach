@@ -1,6 +1,6 @@
 {
   "name": "wellness-cycle-coach",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Local-first menstrual cycle coach MCP for AI agents \u2014 orchestrates Apple Health Cycle, Garmin women's health, and Fitbit female health into phase-aware nutrition and recovery context.",
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,8 @@
     "SECURITY.md",
     "CHANGELOG.md",
     "server.json",
-    "llms.txt"
+    "llms.txt",
+    "skill"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -26,8 +27,9 @@
     "test:metadata": "node scripts/metadata-check.mjs",
     "test:engine": "node scripts/test-cycle-engine.mjs",
     "test:demo-contract": "node scripts/demo-contract-test.mjs",
-    "test": "npm run typecheck && npm run build && npm run test:engine && npm run smoke && npm run test:demo-contract && npm run test:metadata",
-    "prepublishOnly": "npm test"
+    "test": "npm run typecheck && npm run build && npm run test:engine && npm run smoke && npm run test:demo-contract && npm run test:metadata && npm run test:skill-surface",
+    "prepublishOnly": "npm test",
+    "test:skill-surface": "node scripts/test-skill-surface.mjs"
   },
   "engines": {
     "node": ">=20"

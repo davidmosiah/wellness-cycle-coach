@@ -27,9 +27,10 @@
     "test:metadata": "node scripts/metadata-check.mjs",
     "test:engine": "node scripts/test-cycle-engine.mjs",
     "test:demo-contract": "node scripts/demo-contract-test.mjs",
-    "test": "npm run typecheck && npm run build && npm run test:engine && npm run smoke && npm run test:demo-contract && npm run test:metadata && npm run test:skill-surface",
+    "test": "npm run typecheck && npm run build && npm run test:input-boundaries && npm run test:engine && npm run smoke && npm run test:demo-contract && npm run test:metadata && npm run test:skill-surface",
     "prepublishOnly": "npm test",
-    "test:skill-surface": "node scripts/test-skill-surface.mjs"
+    "test:skill-surface": "node scripts/test-skill-surface.mjs",
+    "test:input-boundaries": "node scripts/test-input-boundaries.mjs"
   },
   "engines": {
     "node": ">=20"

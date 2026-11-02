@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidCycleDate } from "../services/cycle-date.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   checkIrregularity,
@@ -85,9 +86,12 @@ function jsonResponse(payload: unknown, privacy_mode?: string) {
   };
 }
 
+const CycleDateSchema = z.string().refine(isValidCycleDate, "Expected a valid calendar date in YYYY-MM-DD format.")
+  .describe("UTC calendar date, YYYY-MM-DD; dates are not interpreted in the user local timezone.");
+
 const HistorySchema = z.array(
   z.object({
-    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    start_date: CycleDateSchema,
     length_days: z.number().int().positive().optional(),
   }),
 );
@@ -173,12 +177,12 @@ export function registerCycleTools(server: McpServer): void {
     {
       title: "Cycle estimate phase",
       description:
-        "Given a list of recent period start dates (from any source), returns the current phase, cycle day, estimated cycle length, next-period date, and confidence. v0.3.2 adds a `late_luteal` sub-phase (triggered when the cycle is past its expected end + grace day) plus `days_past_due` and `delay_flag` (raised when ≥2 days late vs prediction from 3+ historical cycles). v0.3.3 adds `cycle_irregular` (PCOS / irregular-cycle mode): when true, accepts cycles 21-90 days, caps confidence at 'low', returns `luteal_extended` + `irregular_window: true` past 35 days since last period, and adds a clinician-defer warning.",
+        "Given a list of recent period start dates (from any source), returns the current phase, cycle day, estimated cycle length, next-period date, and confidence. Dates use UTC calendar days, not the user local timezone; history after the reference date is rejected. v0.3.2 adds a `late_luteal` sub-phase (triggered when the cycle is past its expected end + grace day) plus `days_past_due` and `delay_flag` (raised when ≥2 days late vs prediction from 3+ historical cycles). v0.3.3 adds `cycle_irregular` (PCOS / irregular-cycle mode): when true, accepts cycles 21-90 days, caps confidence at 'low', returns `luteal_extended` + `irregular_window: true` past 35 days since last period, and adds a clinician-defer warning.",
       inputSchema: {
         history: HistorySchema.describe(
           "Array of {start_date: 'YYYY-MM-DD', length_days?: number}. Sorted automatically.",
         ),
-        today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Optional reference date; defaults to system today."),
+        today: CycleDateSchema.optional().describe("Optional UTC reference calendar date; defaults to the current UTC day. History after this date is rejected."),
         cycle_irregular: z
           .boolean()
           .optional()
@@ -270,7 +274,7 @@ export function registerCycleTools(server: McpServer): void {
         "Given period history, returns nutrition recommendations for the user's current phase. Combine with wellness-nourish for full meal planning. v0.3.3 supports `cycle_irregular: true` for PCOS-aware mode.",
       inputSchema: {
         history: HistorySchema,
-        today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        today: CycleDateSchema.optional().describe("UTC reference calendar date; defaults to current UTC day. History after this date is rejected."),
         cycle_irregular: z.boolean().optional(),
       },
     },
@@ -299,7 +303,7 @@ export function registerCycleTools(server: McpServer): void {
         "Given period history, returns training recommendations for the user's current phase. Pair with WHOOP/Oura/Garmin recovery for late-luteal load adjustments. v0.3.3 supports `cycle_irregular: true` for PCOS-aware mode.",
       inputSchema: {
         history: HistorySchema,
-        today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        today: CycleDateSchema.optional().describe("UTC reference calendar date; defaults to current UTC day. History after this date is rejected."),
         cycle_irregular: z.boolean().optional(),
       },
     },
@@ -327,7 +331,7 @@ export function registerCycleTools(server: McpServer): void {
       description: "Single-call report: phase + nutrition + training + hydration + next-period estimate. Includes a TL;DR string for quick agent rendering. v0.3.3 supports `cycle_irregular: true` for PCOS-aware mode.",
       inputSchema: {
         history: HistorySchema,
-        today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        today: CycleDateSchema.optional().describe("UTC reference calendar date; defaults to current UTC day. History after this date is rejected."),
         cycle_irregular: z.boolean().optional(),
       },
     },

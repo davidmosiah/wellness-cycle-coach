@@ -17,6 +17,8 @@ import {
   type CyclePhase,
 } from "../constants.js";
 
+import { parseCycleDate, validateCycleHistoryDates } from "./cycle-date.js";
+
 export interface CycleHistoryEntry {
   /** ISO date YYYY-MM-DD when the period started. */
   start_date: string;
@@ -74,6 +76,7 @@ export function estimateAverageCycleLength(
   history: CycleHistoryEntry[],
   options: PhaseEstimateOptions = {},
 ): number {
+  for (const entry of history) parseCycleDate(entry.start_date);
   if (history.length < 2) return DEFAULT_CYCLE_LENGTH_DAYS;
   const sorted = [...history].sort((a, b) => a.start_date.localeCompare(b.start_date));
   const diffs: number[] = [];
@@ -97,6 +100,7 @@ export function estimatePhase(
   today: Date = new Date(),
   options: PhaseEstimateOptions = {},
 ): PhaseEstimate {
+  validateCycleHistoryDates(history, today);
   const irregular = options.cycle_irregular === true;
   const sorted = [...history].sort((a, b) => a.start_date.localeCompare(b.start_date));
   const lastPeriod = sorted[sorted.length - 1];
@@ -203,6 +207,9 @@ export function estimatePhase(
  * and the old logic would still return "luteal" (no signal of anomaly).
  */
 export function phaseFromDay(cycleDay: number, cycleLength: number, periodLength: number): CyclePhase {
+  if (!Number.isInteger(cycleDay) || cycleDay < 1) {
+    throw new Error("Cycle day must be a positive integer.");
+  }
   if (cycleDay <= periodLength) return "menstrual";
   const ovulationDay = cycleLength - DEFAULT_LUTEAL_LENGTH_DAYS;
   if (cycleDay < ovulationDay - 1) return "follicular";

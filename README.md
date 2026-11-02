@@ -35,7 +35,7 @@
 Default is **stdio**. Optional Streamable HTTP — no session id, JSON responses, loopback only:
 
 ```bash
-npx -y wellness-cycle-coach --http
+npx -y wellness-cycle-coach@0.5.0 --http
 # GET  http://127.0.0.1:3000/health
 # POST http://127.0.0.1:3000/mcp   (sessionless)
 ```
@@ -51,14 +51,14 @@ Pass in period start dates (from any source — Apple Health Cycle, Garmin women
 ## Try It In 60 Seconds
 
 ```bash
-npx -y wellness-cycle-coach doctor
+npx -y wellness-cycle-coach@0.5.0 doctor
 
 # Or use the MCP directly via your client:
 # {
 #   "mcpServers": {
 #     "wellness-cycle-coach": {
 #       "command": "npx",
-#       "args": ["-y", "wellness-cycle-coach"]
+#       "args": ["-y", "wellness-cycle-coach@0.5.0"]
 #     }
 #   }
 # }
@@ -172,7 +172,18 @@ MIT — see [LICENSE](LICENSE).
 Same package, two doors. MCP registers tools on stdio/HTTP. The [skill](skill/SKILL.md) can drive the **same** tools through the CLI when the client has no MCP:
 
 ```bash
-npx -y wellness-cycle-coach call cycle_connection_status --json '{}'
+npx -y wellness-cycle-coach@0.5.0 call cycle_connection_status --json '{}'
 ```
 
 Copy `skill/SKILL.md` into your agent skills dir.
+
+## 0.5.0 — candidate (2026-11-02)
+
+This is a release candidate, not evidence of an npm publication. Existing installations are not updated automatically.
+
+### Migration and security boundaries
+
+- HTTP transport accepts loopback only. LAN addresses and wildcard binds are rejected; use stdio or a local loopback client instead.
+- Wellness profiles are validated, limited to 256 KiB, and protected with a cooperative lock. Oversized or invalid existing profiles must be corrected before use. Symbolic links, including dangling links and legacy profile paths, are rejected. These checks do not guarantee safety against a hostile local filesystem or non-cooperating processes.
+- MCP inputs have a 10,000-element budget and HTTP bodies are limited to 1 MiB; compressed request bodies are rejected. Previously accepted oversized requests may now fail; reduce request sizes rather than disabling validation.
+- Dependency fixes are included. Upgrade explicitly after publication and restart the connector; old installations retain their previous behavior.

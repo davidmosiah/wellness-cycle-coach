@@ -14,7 +14,7 @@ Same binary either way. Do not duplicate the API client.
 **MCP** — tools appear natively after stdio/HTTP config:
 
 ```json
-{ "mcpServers": { "wellness-cycle": { "command": "npx", "args": ["-y", "wellness-cycle-coach"] } } }
+{ "mcpServers": { "wellness-cycle": { "command": "npx", "args": ["-y", "wellness-cycle-coach@0.5.0"] } } }
 ```
 
 Do not put mutation flags in that snippet.
@@ -22,7 +22,7 @@ Do not put mutation flags in that snippet.
 **Skill / CLI** — no MCP client required. Same tools:
 
 ```bash
-npx -y wellness-cycle-coach call cycle_connection_status --json '{}'
+npx -y wellness-cycle-coach@0.5.0 call cycle_connection_status --json '{}'
 ```
 
 If MCP tools named `cycle_*` are already available, use them. Do not also shell out.

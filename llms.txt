@@ -5,7 +5,7 @@ Local-first, stateless menstrual cycle coach MCP. Takes period start dates (pass
 Repository: https://github.com/davidmosiah/wellness-cycle-coach
 NPM: https://www.npmjs.com/package/wellness-cycle-coach
 Docs: https://wellness.delx.ai/connectors/cycle
-Primary command: npx -y wellness-cycle-coach doctor
+Primary command: npx -y wellness-cycle-coach@0.5.0 doctor
 MCP command: wellness-cycle-mcp
 
 Core tools (11):
@@ -45,4 +45,4 @@ Safety:
 - Treat menstrual cycle data with the same sensitivity as medical records.
 
 Skill (same gates, no MCP client required): skill/SKILL.md
-npx -y wellness-cycle-coach call <tool> --json '{...}'
+npx -y wellness-cycle-coach@0.5.0 call <tool> --json '{...}'

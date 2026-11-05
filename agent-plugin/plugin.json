@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "wellness-cycle-coach",
+  "version": "0.4.3",
+  "description": "Estimate menstrual cycle phase, next period and phase-aware training, nutrition and hydration guidance with the stateless cycle-coach MCP server.",
+  "author": {
+    "name": "David Mosiah",
+    "url": "https://github.com/davidmosiah"
+  },
+  "homepage": "https://github.com/davidmosiah/wellness-cycle-coach",
+  "repository": "https://github.com/davidmosiah/wellness-cycle-coach",
+  "license": "MIT",
+  "keywords": [
+    "ai-agents",
+    "delx-wellness",
+    "fertility",
+    "hermes",
+    "mcp",
+    "menstrual-cycle",
+    "model-context-protocol",
+    "wellness",
+    "womens-health"
+  ]
+}

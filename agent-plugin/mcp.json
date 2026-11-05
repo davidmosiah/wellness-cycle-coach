@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "cycle-coach": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "wellness-cycle-coach@0.4.3"
+      ],
+      "cwd": "${PLUGIN_DATA}"
+    }
+  }
+}

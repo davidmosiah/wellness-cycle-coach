@@ -6,7 +6,7 @@ description: >-
 
 # Cycle Coach
 
-MCP server `cycle-coach` from the `wellness-cycle-coach@0.4.3` npm package, run locally through `npx`. It reads current cycle phase and day, next-period estimate, irregularity check, and phase-aware training, nutrition and hydration guidance. Data source: no network service and no storage: every call computes from period start dates passed in the arguments.
+MCP server `cycle-coach` from the `wellness-cycle-coach@0.5.0` npm package, run locally through `npx`. It reads current cycle phase and day, next-period estimate, irregularity check, and phase-aware training, nutrition and hydration guidance. Data source: no network service and no storage: every call computes from period start dates passed in the arguments.
 
 ## Workflow
 

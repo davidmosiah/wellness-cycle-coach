@@ -6,7 +6,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "wellness-cycle-coach@0.4.3"
+        "wellness-cycle-coach@0.5.0"
       ],
       "cwd": "${PLUGIN_DATA}"
     }

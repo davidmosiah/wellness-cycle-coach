@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "wellness-cycle-coach",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Estimate menstrual cycle phase, next period and phase-aware training, nutrition and hydration guidance with the stateless cycle-coach MCP server.",
   "author": {
     "name": "David Mosiah",

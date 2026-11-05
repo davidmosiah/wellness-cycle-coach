@@ -6,7 +6,7 @@ description: >-
 
 # Cycle Coach
 
-MCP server `cycle-coach` from the `wellness-cycle-coach@0.5.0` npm package, run locally through `npx`. It reads current cycle phase and day, next-period estimate, irregularity check, and phase-aware training, nutrition and hydration guidance. Data source: no network service and no storage: every call computes from period start dates passed in the arguments.
+MCP server `cycle-coach` from the `wellness-cycle-coach@0.5.0` npm package, run locally through `npx`. It reads current cycle phase and day, next-period estimate, irregularity check, and phase-aware training, nutrition and hydration guidance. Data source: no network service; cycle history is supplied per call and is not stored. Profile preferences are persisted locally in the shared Delx Wellness profile.
 
 ## Workflow
 
@@ -15,7 +15,13 @@ MCP server `cycle-coach` from the `wellness-cycle-coach@0.5.0` npm package, run 
 
 ## Setup (the user runs this in a terminal, not in chat)
 
-No setup. The connector is stateless: gather period start dates from the user or from the apple-health-mcp, garmin-mcp or fitbit-mcp plugins and pass them in each call.
+No provider setup. Cycle calculations use the period start dates supplied in each call; they do not store cycle history. Profile preferences are persisted locally. Gather period start dates from the user or, with permission, from the apple-health-mcp, garmin-mcp or fitbit-mcp plugins.
+
+## Existing installations
+
+After a plugin update, existing profiles may need attention: field validation, a 256 KiB JSON limit and rejection of symbolic-link profile paths now apply. Older profile writers do not honor the cooperative lock. Do not reset user data or remove an active lock to work around an error; consult the [profile storage and recovery guidance](https://github.com/davidmosiah/wellness-cycle-coach/blob/main/docs/profile-storage.md) and [release migration notes](https://github.com/davidmosiah/wellness-cycle-coach/blob/main/CHANGELOG.md). Keep MCP inputs within the 10,000-element budget.
+
+Use real YYYY-MM-DD dates. Phase calculations use UTC calendar dates and reject history after the reference date.
 
 ## Safety
 
